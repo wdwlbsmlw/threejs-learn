@@ -3,5 +3,5 @@
 </template>
 
 <script>
-require('./utils/long')
+// require('./utils/long')
 </script>
