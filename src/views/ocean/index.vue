@@ -1,14 +1,29 @@
 <template>
-    <div class="wp"></div>
+    <div class="wp">
+        <div class="wp-oper">
+            <button @click="visible = true">显示效果图</button>
+        </div>
+        <!-- <div class="wp-select">
+            <select v-model="moduleType" @change="onSelectChange">
+                <option value="GLTF">GLTF</option>
+                <option value="GLB">GLB</option>
+                <option value="FBX">FBX</option>
+            </select>
+        </div>
+        <span class="wp-percent" v-show="percent != -1">下载模型 {{ percent.toFixed(2) }}%</span> -->
+        <img class="wp-preview" v-show="visible" :src="require('@/assets/ocean.png')" @click="visible = false" />
+    </div>
 </template>
 
 <script>
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-// import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { Ocean } from 'three/examples/jsm/misc/Ocean'
 import Stats from 'three/examples/js/libs/stats.min.js'
+
+let _vm = null
 
 const stats = new Stats()
 let lastTime = ( new Date() ).getTime();
@@ -19,6 +34,8 @@ const WP = {
     ms_Controls: null,
     ms_Mixer: null,
     ms_Ocean: null,
+    moduleType: 'GLTF',
+    currentModule: null,
 
     Initialize: function () {
         this.ms_Renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -26,7 +43,7 @@ const WP = {
         document.querySelector('.wp').appendChild(this.ms_Renderer.domElement)
 
         this.ms_Scene = new THREE.Scene()
-        this.ms_Scene.add(new THREE.AmbientLight(0xcccccc, 0.6))
+        this.ms_Scene.add(new THREE.AmbientLight(0xcccccc, 0.8))
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
         directionalLight.position.set(-1, 500, 500)
         this.ms_Scene.add(directionalLight)
@@ -53,7 +70,7 @@ const WP = {
         this.ms_Ocean = new Ocean(this.ms_Renderer, this.ms_Camera, this.ms_Scene, {
             USE_HALF_FLOAT: false,
             INITIAL_SIZE: 1000.0,
-            INITIAL_WIND: [10.0, 10.0],
+            INITIAL_WIND: [8.0, 8.0],
             INITIAL_CHOPPINESS: 0.8,
             CLEAR_COLOR: [1.0, 1.0, 1.0, 0.0],
             GEOMETRY_ORIGIN: [origx, origz],
@@ -71,19 +88,72 @@ const WP = {
         this.ms_Ocean.materialOcean.uniforms['u_cameraPosition'] = { value: this.ms_Camera.position }
         this.ms_Scene.add(this.ms_Ocean.oceanMesh)
 
-        this._loadShip()
+        // this._loadShip()
     },
 
     // 加载张謇号模型
     _loadShip: function () {
-        new GLTFLoader().load('/module/zhangjian/SHIP.gltf', object => {
-            object.scene.position.set(0, -1, 0)
-            this.ms_Scene.add(object.scene)
-            this.ms_Mixer = new THREE.AnimationMixer(object.scene)
-            object.animations.forEach(a => {
-                this.ms_Mixer.clipAction(a).play()
+        _vm.setPercent(-1)
+        if (this.currentModule) this.ms_Scene.remove(this.currentModule)
+        this.ms_Mixer = null
+        if (this.moduleType === 'GLTF') {
+            new GLTFLoader().load('/module/zhangjian/SHIP.gltf', object => {
+                object.scene.position.set(0, -1, 0)
+                this.currentModule = object.scene
+                this.ms_Scene.add(this.currentModule)
+                this.ms_Mixer = new THREE.AnimationMixer(this.currentModule)
+                object.animations.forEach(a => {
+                    this.ms_Mixer.clipAction(a).play()
+                })
+                setTimeout(() => {
+                    _vm.setPercent(-1)
+                }, 3000)
+            }, xhr => {
+                _vm.setPercent(xhr.loaded / xhr.total * 100)
+            }, error => {
+                console.log(error)
             })
-        })
+        }
+        if (this.moduleType === 'GLB') {
+            new GLTFLoader().load('/module/zhangjian/SHIP.glb', object => {
+                object.scene.scale.set(0.001, 0.001, 0.001)
+                object.scene.position.set(0, -1, 0)
+                this.currentModule = object.scene
+                this.ms_Scene.add(this.currentModule)
+                this.ms_Mixer = new THREE.AnimationMixer(this.currentModule)
+                object.animations.forEach(a => {
+                    this.ms_Mixer.clipAction(a).play()
+                })
+                setTimeout(() => {
+                    _vm.setPercent(-1)
+                }, 3000)
+            }, xhr => {
+                _vm.setPercent(xhr.loaded / xhr.total * 100)
+            })
+        }
+        if (this.moduleType === 'FBX') {
+            new FBXLoader().load('/module/zhangjian/SHIP.FBX', object => {
+                object.scale.set(0.001, 0.001, 0.001)
+                object.rotation.x = THREE.MathUtils.degToRad(-90)
+                object.position.set(0, -1, 0)
+                this.currentModule = object
+                this.ms_Scene.add(this.currentModule)
+                this.ms_Mixer = new THREE.AnimationMixer(this.currentModule)
+                object.animations.forEach(a => {
+                    this.ms_Mixer.clipAction(a).play()
+                })
+                setTimeout(() => {
+                    _vm.setPercent(-1)
+                }, 3000)
+            }, xhr => {
+                _vm.setPercent(xhr.loaded / xhr.total * 100)
+            })
+        }
+    },
+
+    changeModuleType: function (val) {
+        this.moduleType = val
+        this._loadShip()
     },
 
     Display: function () {
@@ -126,7 +196,16 @@ const WP = {
 export default {
     name: 'Ocean',
 
+    data() {
+        return {
+            percent: -1,
+            moduleType: 'GLTF',
+            visible: false
+        }
+    },
+
     mounted() {
+        _vm = this
         document.querySelector('.wp').appendChild(stats.dom)
         WP.Initialize()
 
@@ -143,6 +222,16 @@ export default {
         }
 
         render()
+    },
+
+    methods: {
+        setPercent(val = -1) {
+            this.percent = val
+        },
+
+        onSelectChange() {
+            WP.changeModuleType(this.moduleType)
+        }
     }
 }
 </script>
@@ -153,24 +242,37 @@ export default {
     height: 100vh;
     overflow: hidden;
 
-    #wp {
-        width: 100%;
-        height: 100%;
-    }
-
     &-oper {
         position: fixed;
-        bottom: 10px;
+        top: 10px;
         right: 10px;
         z-index: 1;
     }
 
-    .pane {
+    &-preview {
         position: fixed;
-        top: 10px;
-        left: 100px;
+        z-index: 2;
+        min-width: 100%;
+        min-height: 100%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    &-percent {
+        position: fixed;
+        right: 10px;
+        bottom: 10px;
         z-index: 1;
-        display: none;
+        color: #ffffff;
+    }
+
+    &-select {
+        position: fixed;
+        right: 10px;
+        top: 10px;
+        z-index: 1;
+        color: #ffffff;
     }
 }
 </style>
