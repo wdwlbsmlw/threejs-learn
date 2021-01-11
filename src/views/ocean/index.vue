@@ -5,8 +5,11 @@
 <script>
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+// import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { Ocean } from 'three/examples/jsm/misc/Ocean'
 import Stats from 'three/examples/js/libs/stats.min.js'
+
 const stats = new Stats()
 let lastTime = ( new Date() ).getTime();
 const WP = {
@@ -14,6 +17,7 @@ const WP = {
     ms_Camera: null,
     ms_Scene: null,
     ms_Controls: null,
+    ms_Mixer: null,
     ms_Ocean: null,
 
     Initialize: function () {
@@ -22,9 +26,13 @@ const WP = {
         document.querySelector('.wp').appendChild(this.ms_Renderer.domElement)
 
         this.ms_Scene = new THREE.Scene()
+        this.ms_Scene.add(new THREE.AmbientLight(0xcccccc, 0.6))
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
+        directionalLight.position.set(-1, 500, 500)
+        this.ms_Scene.add(directionalLight)
 
-        this.ms_Camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 300000)
-        this.ms_Camera.position.set(0, 100, 200)
+        this.ms_Camera = new THREE.PerspectiveCamera(35.0, window.innerWidth / window.innerHeight, 0.5, 300000)
+        this.ms_Camera.position.set(0, 100, 300)
         this.ms_Camera.lookAt(0, 0, 0)
 
         // Initialize Orbit control
@@ -45,8 +53,8 @@ const WP = {
         this.ms_Ocean = new Ocean(this.ms_Renderer, this.ms_Camera, this.ms_Scene, {
             USE_HALF_FLOAT: false,
             INITIAL_SIZE: 1000.0,
-            INITIAL_WIND: [20.0, 20.0],
-            INITIAL_CHOPPINESS: 1.2,
+            INITIAL_WIND: [10.0, 10.0],
+            INITIAL_CHOPPINESS: 0.8,
             CLEAR_COLOR: [1.0, 1.0, 1.0, 0.0],
             GEOMETRY_ORIGIN: [origx, origz],
             SUN_DIRECTION: [-1.0, 1.0, 1.0],
@@ -62,6 +70,20 @@ const WP = {
         this.ms_Ocean.materialOcean.uniforms['u_viewMatrix'] = { value: this.ms_Camera.matrixWorldInverse }
         this.ms_Ocean.materialOcean.uniforms['u_cameraPosition'] = { value: this.ms_Camera.position }
         this.ms_Scene.add(this.ms_Ocean.oceanMesh)
+
+        this._loadShip()
+    },
+
+    // 加载张謇号模型
+    _loadShip: function () {
+        new GLTFLoader().load('/module/zhangjian/SHIP.gltf', object => {
+            object.scene.position.set(0, -1, 0)
+            this.ms_Scene.add(object.scene)
+            this.ms_Mixer = new THREE.AnimationMixer(object.scene)
+            object.animations.forEach(a => {
+                this.ms_Mixer.clipAction(a).play()
+            })
+        })
     },
 
     Display: function () {
@@ -88,6 +110,8 @@ const WP = {
         this.ms_Ocean.materialOcean.uniforms['u_viewMatrix'].value = this.ms_Camera.matrixWorldInverse
         this.ms_Ocean.materialOcean.uniforms['u_cameraPosition'].value = this.ms_Camera.position
         this.ms_Ocean.materialOcean.depthTest = true
+
+        if (this.ms_Mixer) this.ms_Mixer.update(this.ms_Ocean.deltaTime)
         this.Display()
     },
 
