@@ -24,7 +24,7 @@ const WP = {
         this.ms_Scene = new THREE.Scene()
 
         this.ms_Camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 300000)
-        this.ms_Camera.position.set(450, 350, 450)
+        this.ms_Camera.position.set(0, 0, 0)
         this.ms_Camera.lookAt(0, 0, 0)
 
         // Initialize Orbit control
@@ -33,8 +33,8 @@ const WP = {
         this.ms_Controls.userPanSpeed = 0.0
         this.ms_Controls.minDistance = 0
         this.ms_Controls.maxDistance = 2000.0
-        this.ms_Controls.minPolarAngle = 0
-        this.ms_Controls.maxPolarAngle = Math.PI * 0.495
+        // this.ms_Controls.minPolarAngle = 0
+        // this.ms_Controls.maxPolarAngle = Math.PI * 0.495
 
         const gsize = 512
         const res = 1024

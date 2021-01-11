@@ -24,7 +24,7 @@ const WP = {
         this.ms_Scene = new THREE.Scene()
 
         this.ms_Camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 300000)
-        this.ms_Camera.position.set(450, 350, 450)
+        this.ms_Camera.position.set(0, 100, 200)
         this.ms_Camera.lookAt(0, 0, 0)
 
         // Initialize Orbit control
@@ -45,8 +45,8 @@ const WP = {
         this.ms_Ocean = new Ocean(this.ms_Renderer, this.ms_Camera, this.ms_Scene, {
             USE_HALF_FLOAT: false,
             INITIAL_SIZE: 1000.0,
-            INITIAL_WIND: [10.0, 10.0],
-            INITIAL_CHOPPINESS: 1.5,
+            INITIAL_WIND: [20.0, 20.0],
+            INITIAL_CHOPPINESS: 1.2,
             CLEAR_COLOR: [1.0, 1.0, 1.0, 0.0],
             GEOMETRY_ORIGIN: [origx, origz],
             SUN_DIRECTION: [-1.0, 1.0, 1.0],
