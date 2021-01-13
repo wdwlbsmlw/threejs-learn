@@ -1,18 +1,5 @@
 <template>
-    <div class="wp">
-        <div class="wp-oper">
-            <button @click="visible = true">显示效果图</button>
-        </div>
-        <!-- <div class="wp-select">
-            <select v-model="moduleType" @change="onSelectChange">
-                <option value="GLTF">GLTF</option>
-                <option value="GLB">GLB</option>
-                <option value="FBX">FBX</option>
-            </select>
-        </div>
-        <span class="wp-percent" v-show="percent != -1">下载模型 {{ percent.toFixed(2) }}%</span> -->
-        <img class="wp-preview" v-show="visible" :src="require('@/assets/ocean.png')" @click="visible = false" />
-    </div>
+    <div class="wp"></div>
 </template>
 
 <script>
@@ -22,6 +9,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { Ocean } from 'three/examples/jsm/misc/Ocean'
 import Stats from 'three/examples/js/libs/stats.min.js'
+import { Loading } from 'element-ui'
 
 let _vm = null
 
@@ -34,10 +22,18 @@ const WP = {
     ms_Controls: null,
     ms_Mixer: null,
     ms_Ocean: null,
+    ms_Crc: null,
     moduleType: 'GLTF',
+    progress: 0,
+    loading: null,
     currentModule: null,
 
     Initialize: function () {
+        this.loading = Loading.service({
+            spinner: 'el-icon-loading',
+            text: '模型加载中...',
+            background: 'rgba(0, 0, 0, 0.5)'
+        })
         this.ms_Renderer = new THREE.WebGLRenderer({ antialias: true })
         this.ms_Renderer.setPixelRatio(window.devicePixelRatio)
         document.querySelector('.wp').appendChild(this.ms_Renderer.domElement)
@@ -52,16 +48,30 @@ const WP = {
         this.ms_Camera.position.set(0, 100, 300)
         this.ms_Camera.lookAt(0, 0, 0)
 
+        // 加载环境三位贴图
+        new THREE.CubeTextureLoader().load([
+            require('@/assets/ocean-sky-sunny/SunnyDay_px.jpg'),
+            require('@/assets/ocean-sky-sunny/SunnyDay_nx.jpg'),
+            require('@/assets/ocean-sky-sunny/SunnyDay_py.jpg'),
+            require('@/assets/ocean-sky-sunny/SunnyDay_ny.jpg'),
+            require('@/assets/ocean-sky-sunny/SunnyDay_pz.jpg'),
+            require('@/assets/ocean-sky-sunny/SunnyDay_nz.jpg')
+        ], texture => {
+            texture.encoding = THREE.sRGBEncoding
+            this.ms_Scene.background = texture
+        })
+
         // Initialize Orbit control
         this.ms_Controls = new OrbitControls(this.ms_Camera, this.ms_Renderer.domElement)
-        this.ms_Controls.userPan = false
+        this.ms_Controls.enablePan = false
+        
         this.ms_Controls.userPanSpeed = 0.0
-        this.ms_Controls.minDistance = 0
-        this.ms_Controls.maxDistance = 2000.0
+        this.ms_Controls.minDistance = 100
+        this.ms_Controls.maxDistance = 500.0
         this.ms_Controls.minPolarAngle = 0
         this.ms_Controls.maxPolarAngle = Math.PI * 0.495
 
-        const gsize = 512
+        const gsize = 1024
         const res = 1024
         const gres = res / 2
         const origx = -gsize / 2
@@ -88,7 +98,7 @@ const WP = {
         this.ms_Ocean.materialOcean.uniforms['u_cameraPosition'] = { value: this.ms_Camera.position }
         this.ms_Scene.add(this.ms_Ocean.oceanMesh)
 
-        // this._loadShip()
+        this._loadShip()
     },
 
     // 加载张謇号模型
@@ -98,7 +108,8 @@ const WP = {
         this.ms_Mixer = null
         if (this.moduleType === 'GLTF') {
             new GLTFLoader().load('/module/zhangjian/SHIP.gltf', object => {
-                object.scene.position.set(0, -1, 0)
+                // object.scene.position.set(0, -1, 0)
+                object.scene.rotateZ(THREE.MathUtils.degToRad(1))
                 this.currentModule = object.scene
                 this.ms_Scene.add(this.currentModule)
                 this.ms_Mixer = new THREE.AnimationMixer(this.currentModule)
@@ -108,10 +119,13 @@ const WP = {
                 setTimeout(() => {
                     _vm.setPercent(-1)
                 }, 3000)
+                this._crc()
+                this.loading.close()
             }, xhr => {
                 _vm.setPercent(xhr.loaded / xhr.total * 100)
             }, error => {
                 console.log(error)
+                this.loading.close()
             })
         }
         if (this.moduleType === 'GLB') {
@@ -127,8 +141,11 @@ const WP = {
                 setTimeout(() => {
                     _vm.setPercent(-1)
                 }, 3000)
+                this._crc()
+                this.loading.close()
             }, xhr => {
                 _vm.setPercent(xhr.loaded / xhr.total * 100)
+                this.loading.close()
             })
         }
         if (this.moduleType === 'FBX') {
@@ -145,10 +162,22 @@ const WP = {
                 setTimeout(() => {
                     _vm.setPercent(-1)
                 }, 3000)
+                this._crc()
+                this.loading.close()
             }, xhr => {
                 _vm.setPercent(xhr.loaded / xhr.total * 100)
+                this.loading.close()
             })
         }
+    },
+    // 初始化船的行走路线
+    _crc: function () {
+        this.ms_Crc = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-100, -1, 0),
+            new THREE.Vector3(-50, -2, 0),
+            new THREE.Vector3(0, -3, 0),
+            new THREE.Vector3(100, 0, 0),
+        ], false)
     },
 
     changeModuleType: function (val) {
@@ -182,6 +211,16 @@ const WP = {
         this.ms_Ocean.materialOcean.depthTest = true
 
         if (this.ms_Mixer) this.ms_Mixer.update(this.ms_Ocean.deltaTime)
+
+        if (this.currentModule && this.ms_Crc) {
+            if (this.progress < 1) {
+                let _p = this.ms_Crc.getPointAt(this.progress)
+                this.currentModule.position.copy(_p)
+                this.progress += 1 / 2000
+            } else {
+                this.progress = 0
+            }
+        }
         this.Display()
     },
 
