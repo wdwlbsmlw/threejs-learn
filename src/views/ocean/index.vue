@@ -175,7 +175,7 @@ const WP = {
         this.ms_Crc = new THREE.CatmullRomCurve3([
             new THREE.Vector3(-100, -1, 0),
             new THREE.Vector3(-50, -2, 0),
-            new THREE.Vector3(0, -3, 0),
+            new THREE.Vector3(0, -2.5, 0),
             new THREE.Vector3(100, 0, 0),
         ], false)
     },
