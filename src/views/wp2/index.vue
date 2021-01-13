@@ -41,11 +41,11 @@ const WP = {
         this.ms_Camera.position.set(2000, 2000, 2000)
         // this.ms_Camera.lookAt(0, 0, 0)
         // 场景光
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
         this.ms_Scene.add(ambientLight)
         // 灯光
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1)
-        directionalLight.position.set(20000, 20000, 20000)
+        directionalLight.position.set(1000, 1000, 2000)
         this.ms_Scene.add(directionalLight)
         // 初始化轨道控制器
         this.ms_Controls = new OrbitControls(this.ms_Camera, this.ms_Renderer.domElement)
