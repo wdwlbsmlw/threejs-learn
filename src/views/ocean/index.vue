@@ -9,7 +9,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { Ocean } from 'three/examples/jsm/misc/Ocean'
 import Stats from 'three/examples/js/libs/stats.min.js'
-import { Loading } from 'element-ui'
+// import { Loading } from 'element-ui'
 
 let _vm = null
 
@@ -29,11 +29,11 @@ const WP = {
     currentModule: null,
 
     Initialize: function () {
-        this.loading = Loading.service({
-            spinner: 'el-icon-loading',
-            text: '模型加载中...',
-            background: 'rgba(0, 0, 0, 0.5)'
-        })
+        // this.loading = Loading.service({
+        //     spinner: 'el-icon-loading',
+        //     text: '模型加载中...',
+        //     background: 'rgba(0, 0, 0, 0.5)'
+        // })
         this.ms_Renderer = new THREE.WebGLRenderer({ antialias: true })
         this.ms_Renderer.setPixelRatio(window.devicePixelRatio)
         document.querySelector('.wp').appendChild(this.ms_Renderer.domElement)
@@ -98,7 +98,7 @@ const WP = {
         this.ms_Ocean.materialOcean.uniforms['u_cameraPosition'] = { value: this.ms_Camera.position }
         this.ms_Scene.add(this.ms_Ocean.oceanMesh)
 
-        this._loadShip()
+        // this._loadShip()
     },
 
     // 加载张謇号模型
